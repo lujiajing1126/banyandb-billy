@@ -22,6 +22,7 @@ go.work
 
 bin
 *.pb.go
+*.pb.gw.go
 *.pb.validate.go
 api/proto/openapi
 banyandb-billy
