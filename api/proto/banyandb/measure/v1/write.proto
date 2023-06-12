@@ -1,0 +1,56 @@
+// Licensed to Apache Software Foundation (ASF) under one or more contributor
+// license agreements. See the NOTICE file distributed with
+// this work for additional information regarding copyright
+// ownership. Apache Software Foundation (ASF) licenses this file to you under
+// the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
+syntax = "proto3";
+
+package banyandb.measure.v1;
+
+import "banyandb/common/v1/common.proto";
+import "banyandb/model/v1/common.proto";
+import "google/protobuf/timestamp.proto";
+import "validate/validate.proto";
+
+option go_package = "github.com/apache/skywalking-banyandb/api/proto/banyandb/measure/v1";
+option java_package = "org.apache.skywalking.banyandb.measure.v1";
+
+// DataPointValue is the data point for writing. It only contains values.
+message DataPointValue {
+  // timestamp is in the timeunit of milliseconds.
+  google.protobuf.Timestamp timestamp = 1 [(validate.rules).timestamp.required = true];
+  // the order of tag_families' items match the measure schema
+  repeated model.v1.TagFamilyForWrite tag_families = 2 [(validate.rules).repeated.min_items = 1];
+  // the order of fields match the measure schema
+  repeated model.v1.FieldValue fields = 3;
+}
+
+// WriteRequest is the request contract for write
+message WriteRequest {
+  // the metadata is required.
+  common.v1.Metadata metadata = 1 [(validate.rules).message.required = true];
+  // the data_point is required.
+  DataPointValue data_point = 2 [(validate.rules).message.required = true];
+}
+
+// WriteResponse is the response contract for write
+message WriteResponse {}
+
+message InternalWriteRequest {
+  uint32 shard_id = 1;
+  bytes series_hash = 2;
+  repeated model.v1.TagValue entity_values = 3;
+  WriteRequest request = 4;
+}
