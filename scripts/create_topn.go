@@ -5,10 +5,11 @@ import (
 	"io"
 	"log"
 	"os"
+	"sigs.k8s.io/yaml"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	"gopkg.in/yaml.v3"
+	"google.golang.org/protobuf/encoding/protojson"
 
 	databasev1 "github.com/lujiajing1126/banyandb-billy/api/proto/banyandb/database/v1"
 )
@@ -18,12 +19,16 @@ func main() {
 	if err != nil {
 		log.Fatal("fail to open file")
 	}
-	content, err := io.ReadAll(f)
+	yamlContent, err := io.ReadAll(f)
 	if err != nil {
 		log.Fatal("fail to read file")
 	}
+	jsonContenxt, err := yaml.YAMLToJSON(yamlContent)
+	if err != nil {
+		log.Fatal("fail to convert yaml to json")
+	}
 	var topNAggr databasev1.TopNAggregation
-	err = yaml.Unmarshal(content, &topNAggr)
+	err = protojson.Unmarshal(jsonContenxt, &topNAggr)
 	if err != nil {
 		log.Fatal("fail to unmarshal topN schema")
 	}

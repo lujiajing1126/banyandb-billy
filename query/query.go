@@ -113,7 +113,7 @@ func (tc *topNClient) preAggregatedTopN(startTS, endTS int64, topN int32) ([]*me
 	resp, err := tc.c.TopN(context.Background(), &measurev1.TopNRequest{
 		Metadata: &commonv1.Metadata{
 			Group: "sw_metric",
-			Name:  "temperature",
+			Name:  "temperature_top100",
 		},
 		TimeRange: &modelv1.TimeRange{
 			Begin: &timestamppb.Timestamp{Seconds: startTS / 1000},
