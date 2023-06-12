@@ -24,3 +24,4 @@ bin
 *.pb.go
 *.pb.validate.go
 api/proto/openapi
+banyandb-billy
