@@ -33,14 +33,4 @@ plugins:
   - name: go-grpc
     out: proto
     opt: paths=source_relative
-  - name: validate
-    out: proto
-    opt:
-      - lang=go
-      - paths=source_relative
-      - validate_out="lang=go:./proto"
-  - name: grpc-gateway
-    out: proto
-    opt: paths=source_relative
-  - name: openapiv2
-    out: proto/openapi
+  

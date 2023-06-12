@@ -20,7 +20,7 @@ import (
 var (
 	mode             = flag.String("mode", "fullscan", "Mode determine how TopN is calculated")
 	startDateTimeStr = flag.String("starttime", "2019-01-01 00:00", "Datetime to start sweep YYYY-MM-DD hh:mm")
-	endDateTimeStr   = flag.String("endtime", "2019-01-01 01:00", "Datetime to end sweep YYYY-MM-DD hh:mm")
+	endDateTimeStr   = flag.String("endtime", "2019-01-02 00:00", "Datetime to end sweep YYYY-MM-DD hh:mm")
 	sink             = flag.String("sink", "localhost:17912", "gRPC target for the data ingestion endpoint.")
 	topN             = flag.Int("topn", 10, "TopN rank")
 )
@@ -102,6 +102,10 @@ func (tc *topNClient) fullScanTopN(startTS, endTS int64, topN int32) ([]*measure
 			},
 			FieldName: "value",
 		},
+		Agg: &measurev1.QueryRequest_Aggregation{
+			Function:  modelv1.AggregationFunction_AGGREGATION_FUNCTION_MEAN,
+			FieldName: "value",
+		},
 	})
 	if err != nil {
 		return nil, err
@@ -113,7 +117,7 @@ func (tc *topNClient) preAggregatedTopN(startTS, endTS int64, topN int32) ([]*me
 	resp, err := tc.c.TopN(context.Background(), &measurev1.TopNRequest{
 		Metadata: &commonv1.Metadata{
 			Group: "sw_metric",
-			Name:  "temperature",
+			Name:  "temperature_top100",
 		},
 		TimeRange: &modelv1.TimeRange{
 			Begin: &timestamppb.Timestamp{Seconds: startTS / 1000},

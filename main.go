@@ -49,10 +49,9 @@ func main() {
 
 	startTimestamp := mustParseDate(*startDateTimeStr, "startdate")
 	endTimestamp := mustParseDate(*endDateTimeStr, "enddate")
-	if startTimestamp > endTimestamp {
-		log.Fatalf("-starttime=%s cannot exceed -endtime=%s", *startDateTimeStr, *endDateTimeStr)
+	if startTimestamp >= endTimestamp {
+		log.Fatalf("-starttime=%s cannot equal or larger than -endtime=%s", *startDateTimeStr, *endDateTimeStr)
 	}
-	endTimestamp += 24 * 3600 * 1000
 	// rowsCount is minutes between the startTime and endTime
 	rowsCount := int((endTimestamp - startTimestamp) / (60 * 1000))
 	if *startKey > *endKey {
