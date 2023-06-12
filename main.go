@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"flag"
+	"io"
 	"log"
 	"math"
 	"math/rand"
@@ -171,6 +172,20 @@ func writeSeriesBanyanDB(msc measurev1.MeasureServiceClient, r *rand.Rand, start
 	timestamp := startTimestamp
 	var sendError error
 	byteSlice := make([]byte, 8)
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for {
+			_, err := wc.Recv()
+			if err == io.EOF {
+				return
+			}
+			if err != nil {
+				log.Fatalf("Failed to receive a note : %v", err)
+			}
+		}
+	}()
 	for i := 0; i < rowsCount-1; i++ {
 		for key := startKey; key <= endKey; key++ {
 			sendError = multierr.Append(sendError, wc.Send(&measurev1.WriteRequest{
@@ -217,6 +232,8 @@ func writeSeriesBanyanDB(msc measurev1.MeasureServiceClient, r *rand.Rand, start
 		// -> next minute
 		timestamp = startTimestamp + int64(i+1)*60*1000
 	}
+	sendError = multierr.Append(sendError, wc.CloseSend())
+	wg.Wait()
 	return sendError
 }
 

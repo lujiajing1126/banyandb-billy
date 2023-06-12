@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -17,6 +18,7 @@ import (
 )
 
 var (
+	mode             = flag.String("mode", "fullscan", "Mode determine how TopN is calculated")
 	startDateTimeStr = flag.String("starttime", "2019-01-01 00:00", "Datetime to start sweep YYYY-MM-DD hh:mm")
 	endDateTimeStr   = flag.String("endtime", "2019-01-01 01:00", "Datetime to end sweep YYYY-MM-DD hh:mm")
 	sink             = flag.String("sink", "localhost:17912", "gRPC target for the data ingestion endpoint.")
@@ -40,11 +42,19 @@ func main() {
 	defer conn.Close()
 
 	tc := &topNClient{c: measurev1.NewMeasureServiceClient(conn)}
-	resp, err := tc.fullScanTopN(startTimestamp, endTimestamp, int32(*topN))
-	if err != nil {
-		log.Fatalf("fail to query TopN via full-scan: %v", err)
+	if *mode == "fullscan" {
+		resp, err := tc.fullScanTopN(startTimestamp, endTimestamp, int32(*topN))
+		if err != nil {
+			log.Fatalf("fail to query TopN via full-scan: %v", err)
+		}
+		fmt.Printf("expect TopN(%d): actual is %d. The first elem is %v", *topN, len(resp), resp[0])
+	} else if *mode == "preaggregation" {
+		resp, err := tc.preAggregatedTopN(startTimestamp, endTimestamp, int32(*topN))
+		if err != nil {
+			log.Fatalf("fail to query TopN via pre-aggregation: %v", err)
+		}
+		fmt.Printf("expect TopN(%d): actual is %d. The first elem is %v", *topN, len(resp), resp[0])
 	}
-	fmt.Printf("expect TopN(%d): actual is %d. The first elem is %v", *topN, len(resp), resp[0])
 }
 
 type topNClient struct {
@@ -97,6 +107,29 @@ func (tc *topNClient) fullScanTopN(startTS, endTS int64, topN int32) ([]*measure
 		return nil, err
 	}
 	return resp.GetDataPoints(), nil
+}
+
+func (tc *topNClient) preAggregatedTopN(startTS, endTS int64, topN int32) ([]*measurev1.TopNList_Item, error) {
+	resp, err := tc.c.TopN(context.Background(), &measurev1.TopNRequest{
+		Metadata: &commonv1.Metadata{
+			Group: "sw_metric",
+			Name:  "temperature",
+		},
+		TimeRange: &modelv1.TimeRange{
+			Begin: &timestamppb.Timestamp{Seconds: startTS / 1000},
+			End:   &timestamppb.Timestamp{Seconds: endTS / 1000},
+		},
+		TopN:           topN,
+		FieldValueSort: modelv1.Sort_SORT_DESC,
+		Agg:            modelv1.AggregationFunction_AGGREGATION_FUNCTION_MEAN,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(resp.GetLists()) != 1 {
+		return nil, errors.New("fail to parse topN series: not equal to 1")
+	}
+	return resp.GetLists()[0].GetItems(), nil
 }
 
 func mustParseDate(dateStr, flagName string) int64 {
