@@ -15,7 +15,7 @@ After schema are setup,
 $ ./scripts/load_data_5K_client.sh
 ```
 
-which will load 5K measure per minute (1 hour in total) into the BanyanDB.
+which will load 5K measure per minute (24 hours in total) into the BanyanDB.
 
 ## Acknowledgement
 
