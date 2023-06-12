@@ -29,14 +29,14 @@ const (
 )
 
 var (
-	startDateStr   = flag.String("startdate", "2019-01-01", "Date to start sweep YYYY-MM-DD")
-	endDateStr     = flag.String("enddate", "2019-01-31", "Date to end sweep YYYY-MM-DD")
-	startKey       = flag.Int("startkey", 1, "First sensor ID")
-	endKey         = flag.Int("endkey", 2, "Last sensor ID")
-	workers        = flag.Int("workers", 1, "The number of concurrent workers used for data ingestion. By default, measure is written serially.")
-	sink           = flag.String("sink", "localhost:17912", "gRPC target for the data ingestion endpoint.")
-	digits         = flag.Int("digits", 2, "The number of decimal digits after the point in the generated temperature. The original benchmark from ScyllaDB uses 2 decimal digits after the point. See query results at https://www.scylladb.com/2019/12/12/how-scylla-scaled-to-one-billion-rows-a-second/")
-	reportInterval = flag.Duration("report-interval", 10*time.Second, "Stats reporting interval")
+	startDateTimeStr = flag.String("starttime", "2019-01-01 00:00", "Datetime to start sweep YYYY-MM-DD hh:mm")
+	endDateTimeStr   = flag.String("endtime", "2019-01-01 01:00", "Datetime to end sweep YYYY-MM-DD hh:mm")
+	startKey         = flag.Int("startkey", 1, "First sensor ID")
+	endKey           = flag.Int("endkey", 2, "Last sensor ID")
+	workers          = flag.Int("workers", 1, "The number of concurrent workers used for data ingestion. By default, measure is written serially.")
+	sink             = flag.String("sink", "localhost:17912", "gRPC target for the data ingestion endpoint.")
+	digits           = flag.Int("digits", 2, "The number of decimal digits after the point in the generated temperature. The original benchmark from ScyllaDB uses 2 decimal digits after the point. See query results at https://www.scylladb.com/2019/12/12/how-scylla-scaled-to-one-billion-rows-a-second/")
+	reportInterval   = flag.Duration("report-interval", 10*time.Second, "Stats reporting interval")
 )
 
 var (
@@ -46,10 +46,10 @@ var (
 func main() {
 	flag.Parse()
 
-	startTimestamp := mustParseDate(*startDateStr, "startdate")
-	endTimestamp := mustParseDate(*endDateStr, "enddate")
+	startTimestamp := mustParseDate(*startDateTimeStr, "startdate")
+	endTimestamp := mustParseDate(*endDateTimeStr, "enddate")
 	if startTimestamp > endTimestamp {
-		log.Fatalf("-startdate=%s cannot exceed -enddate=%s", *startDateStr, *endDateStr)
+		log.Fatalf("-starttime=%s cannot exceed -endtime=%s", *startDateTimeStr, *endDateTimeStr)
 	}
 	endTimestamp += 24 * 3600 * 1000
 	// rowsCount is minutes between the startTime and endTime
@@ -235,7 +235,7 @@ func generateTemperature(r *rand.Rand, min, e float64) float64 {
 }
 
 func mustParseDate(dateStr, flagName string) int64 {
-	startTime, err := time.Parse("2006-01-02", dateStr)
+	startTime, err := time.Parse("2006-01-02 03:04", dateStr)
 	if err != nil {
 		log.Fatalf("cannot parse -%s=%q: %s", flagName, dateStr, err)
 	}

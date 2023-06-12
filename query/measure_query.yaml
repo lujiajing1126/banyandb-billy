@@ -1,0 +1,15 @@
+metadata:
+  name: temperature
+  group: sw_metric
+tagProjection:
+  tagFamilies:
+    - name: "default"
+      tags: ["sensor_id"]
+    - name: "storage-only"
+      tags: ["entity_id"]
+fieldProjection:
+  names: ["value"]
+limit: 10
+timeRange:
+  begin: 2019-01-01T00:00:00Z
+  end: 2019-01-01T01:00:00Z
