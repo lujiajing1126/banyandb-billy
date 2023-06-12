@@ -1,6 +1,6 @@
 # Billy Benchmark for BanyanDB
 
-## How to run
+## Load data
 
 First, start `banyandb`. And create resources,
 
@@ -16,6 +16,20 @@ $ ./scripts/load_data_5K_client.sh
 ```
 
 which will load 5K measure per minute (24 hours in total) into the BanyanDB.
+
+## Run query tests
+
+For a simple verification that the data has been written successfully, use the following script,
+
+```shell
+$ bydbctl measure query -f ./query/measure_query.yaml
+```
+
+Then run query job,
+
+```shell
+$ time go run ./query/query.go
+```
 
 ## Acknowledgement
 

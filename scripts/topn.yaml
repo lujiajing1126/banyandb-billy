@@ -1,0 +1,12 @@
+metadata:
+  name: temperature_top100
+  group: sw_metric
+sourceMeasure:
+  name: temperature
+  group: sw_metric
+fieldName: value
+fieldValueSort: 1
+groupByTagNames:
+  - "service_id"
+countersNumber: 1000
+lruSize: 10
