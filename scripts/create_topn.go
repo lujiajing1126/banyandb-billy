@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	f, err := os.Open("./topn.yaml")
+	f, err := os.Open("./scripts/topn.yaml")
 	if err != nil {
 		log.Fatal("fail to open file")
 	}
@@ -33,7 +33,7 @@ func main() {
 	}
 	defer conn.Close()
 	registryClient := databasev1.NewTopNAggregationRegistryServiceClient(conn)
-	resp, err := registryClient.Create(context.Background(), &databasev1.TopNAggregationRegistryServiceCreateRequest{
+	_, err = registryClient.Create(context.Background(), &databasev1.TopNAggregationRegistryServiceCreateRequest{
 		TopNAggregation: &topNAggr,
 	})
 	if err != nil {
