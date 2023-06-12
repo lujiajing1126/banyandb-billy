@@ -25,9 +25,6 @@ tool_bin := $(ROOT_DIR)/bin
 BUF_VERSION := v1.5.0
 PROTOC_GEN_GO_VERSION := v1.28.0
 PROTOC_GEN_GO_GRPC_VERSION := v1.2.0
-PROTOC_GEN_VALIDATE_VERSION := v0.6.7
-GRPC_GATEWAY_VERSION := v2.10.3
-PROTOC_GEN_DOC_VERSION := v1.5.1
 
 ## Tools
 BUF := $(tool_bin)/buf
@@ -39,11 +36,7 @@ $(BUF):
 	@rm -f $(tool_bin)/buf
 	@GOBIN=$(tool_bin) go install google.golang.org/protobuf/cmd/protoc-gen-go@$(PROTOC_GEN_GO_VERSION)
 	@GOBIN=$(tool_bin) go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@$(PROTOC_GEN_GO_GRPC_VERSION)
-	@GOBIN=$(tool_bin) go install github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@$(PROTOC_GEN_DOC_VERSION)
-	@GOBIN=$(tool_bin) go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@$(GRPC_GATEWAY_VERSION)
-	@GOBIN=$(tool_bin) go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@$(GRPC_GATEWAY_VERSION)
 	@GOBIN=$(tool_bin) go install github.com/bufbuild/buf/cmd/buf@$(BUF_VERSION)
-	@GOBIN=$(tool_bin) go install github.com/envoyproxy/protoc-gen-validate@$(PROTOC_GEN_VALIDATE_VERSION)
 
 generate: $(BUF)
 	@PATH=$(tool_bin):$(proto_dir) $(BUF) generate
