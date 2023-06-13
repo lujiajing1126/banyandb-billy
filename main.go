@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"encoding/base64"
 	"encoding/binary"
@@ -9,7 +10,9 @@ import (
 	"log"
 	"math"
 	"math/rand"
+	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -17,6 +20,8 @@ import (
 	"go.uber.org/multierr"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	commonv1 "github.com/lujiajing1126/banyandb-billy/api/proto/banyandb/common/v1"
@@ -35,13 +40,13 @@ var (
 	startKey         = flag.Int("startkey", 1, "First sensor ID")
 	endKey           = flag.Int("endkey", 2, "Last sensor ID")
 	workers          = flag.Int("workers", 1, "The number of concurrent workers used for data ingestion. By default, measure is written serially.")
-	sink             = flag.String("sink", "localhost:17912", "gRPC target for the data ingestion endpoint.")
+	sink             = flag.String("sink", "grpc://localhost:17912", "gRPC target for the data ingestion endpoint.")
 	digits           = flag.Int("digits", 2, "The number of decimal digits after the point in the generated temperature. The original benchmark from ScyllaDB uses 2 decimal digits after the point. See query results at https://www.scylladb.com/2019/12/12/how-scylla-scaled-to-one-billion-rows-a-second/")
 	reportInterval   = flag.Duration("report-interval", 10*time.Second, "Stats reporting interval")
 )
 
 var (
-	metadata = &commonv1.Metadata{Group: measureGroup, Name: measureName}
+	md = &commonv1.Metadata{Group: measureGroup, Name: measureName}
 )
 
 func main() {
@@ -144,15 +149,23 @@ func worker(workCh <-chan work) {
 }
 
 func workerSingleRequest(workCh <-chan work, wk work) {
-	conn, err := grpc.Dial(*sink, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		log.Fatalf("cannot establish a connection to %q: %s", *sink, err)
+	var msc measurev1.MeasureServiceClient
+	if strings.HasPrefix(*sink, "grpc://") {
+		conn, err := grpc.Dial((*sink)[7:], grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			log.Fatalf("cannot establish a connection to %q: %s", *sink, err)
+		}
+		defer conn.Close()
+
+		// create a measure write stub
+		msc = measurev1.NewMeasureServiceClient(conn)
+	} else {
+		msc = &mockMeasureServiceClient{
+			fileName: (*sink)[7:], // file://
+		}
 	}
-	defer conn.Close()
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	ok := true
-	// create a measure write stub
-	msc := measurev1.NewMeasureServiceClient(conn)
 	for ok {
 		wk.do(msc, r)
 		wk, ok = <-workCh
@@ -188,7 +201,7 @@ func writeSeriesBanyanDB(msc measurev1.MeasureServiceClient, r *rand.Rand, start
 	for i := 0; i < rowsCount-1; i++ {
 		for key := startKey; key <= endKey; key++ {
 			sendError = multierr.Append(sendError, wc.Send(&measurev1.WriteRequest{
-				Metadata: metadata,
+				Metadata: md,
 				DataPoint: &measurev1.DataPointValue{
 					Timestamp: &timestamppb.Timestamp{
 						Seconds: timestamp / 1000,
@@ -256,4 +269,84 @@ func mustParseDate(dateStr, flagName string) int64 {
 		log.Fatalf("cannot parse -%s=%q: %s", flagName, dateStr, err)
 	}
 	return startTime.UnixNano() / 1e6
+}
+
+var _ measurev1.MeasureServiceClient = (*mockMeasureServiceClient)(nil)
+
+type mockMeasureServiceClient struct {
+	fileName string
+}
+
+func (m *mockMeasureServiceClient) Query(ctx context.Context, in *measurev1.QueryRequest, opts ...grpc.CallOption) (*measurev1.QueryResponse, error) {
+	panic("implement me")
+}
+
+func (m *mockMeasureServiceClient) TopN(ctx context.Context, in *measurev1.TopNRequest, opts ...grpc.CallOption) (*measurev1.TopNResponse, error) {
+	panic("implement me")
+}
+
+func (m *mockMeasureServiceClient) Write(ctx context.Context, opts ...grpc.CallOption) (measurev1.MeasureService_WriteClient, error) {
+	f, err := os.OpenFile(m.fileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		return nil, err
+	}
+	c := &mockMeasureServiceWriteClient{
+		ctx: ctx,
+		buf: bufio.NewWriter(f),
+	}
+	c.wg.Add(1)
+	return c, nil
+}
+
+var _ measurev1.MeasureService_WriteClient = (*mockMeasureServiceWriteClient)(nil)
+
+type mockMeasureServiceWriteClient struct {
+	wg  sync.WaitGroup
+	ctx context.Context
+	buf *bufio.Writer
+}
+
+func (c *mockMeasureServiceWriteClient) Send(request *measurev1.WriteRequest) error {
+	payload, err := protojson.Marshal(request)
+	if err != nil {
+		return err
+	}
+	_, err = c.buf.Write(payload)
+	_, _ = c.buf.Write([]byte("\n"))
+	return err
+}
+
+func (c *mockMeasureServiceWriteClient) Recv() (*measurev1.WriteResponse, error) {
+	c.wg.Wait()
+	return nil, io.EOF
+}
+
+func (c *mockMeasureServiceWriteClient) Header() (metadata.MD, error) {
+	panic("implement me")
+}
+
+func (c *mockMeasureServiceWriteClient) Trailer() metadata.MD {
+	panic("implement me")
+}
+
+func (c *mockMeasureServiceWriteClient) CloseSend() error {
+	defer c.wg.Done()
+	if err := c.buf.Flush(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *mockMeasureServiceWriteClient) Context() context.Context {
+	return c.ctx
+}
+
+func (c *mockMeasureServiceWriteClient) SendMsg(m interface{}) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (c *mockMeasureServiceWriteClient) RecvMsg(m interface{}) error {
+	//TODO implement me
+	panic("implement me")
 }
