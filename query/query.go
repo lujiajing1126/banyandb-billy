@@ -106,6 +106,7 @@ func (tc *topNClient) fullScanTopN(startTS, endTS int64, topN int32) ([]*measure
 			Function:  modelv1.AggregationFunction_AGGREGATION_FUNCTION_MEAN,
 			FieldName: "value",
 		},
+		Limit: 5000,
 	})
 	if err != nil {
 		return nil, err
