@@ -7,6 +7,7 @@ First, start `banyandb`. And create resources,
 ```shell
 $ bydbctl group create -f ./scripts/group.yaml
 $ bydbctl measure create -f ./scripts/measure.yaml
+$ go run ./scripts/create_topn.go
 ```
 
 After schema are setup, 

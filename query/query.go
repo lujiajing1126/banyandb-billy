@@ -82,10 +82,6 @@ func (tc *topNClient) fullScanTopN(startTS, endTS int64, topN int32) ([]*measure
 					Name: "default",
 					Tags: []string{"sensor_id"},
 				},
-				{
-					Name: "storage-only",
-					Tags: []string{"entity_id"},
-				},
 			},
 		},
 		FieldProjection: &measurev1.QueryRequest_FieldProjection{
@@ -95,8 +91,8 @@ func (tc *topNClient) fullScanTopN(startTS, endTS int64, topN int32) ([]*measure
 			TagProjection: &modelv1.TagProjection{
 				TagFamilies: []*modelv1.TagProjection_TagFamily{
 					{
-						Name: "storage-only",
-						Tags: []string{"entity_id"},
+						Name: "default",
+						Tags: []string{"sensor_id"},
 					},
 				},
 			},

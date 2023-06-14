@@ -6,10 +6,6 @@ tag_families:
     tags:
       - name: sensor_id
         type: TAG_TYPE_STRING
-  - name: storage-only
-    tags:
-      - name: entity_id
-        type: TAG_TYPE_ID
 fields:
   - name: value
     field_type: FIELD_TYPE_INT
@@ -17,5 +13,5 @@ fields:
     compression_method: COMPRESSION_METHOD_ZSTD
 entity:
   tag_names:
-    - entity_id
+    - sensor_id
 interval: 1m

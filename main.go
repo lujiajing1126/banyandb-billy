@@ -3,8 +3,6 @@ package main
 import (
 	"bufio"
 	"context"
-	"encoding/base64"
-	"encoding/binary"
 	"flag"
 	"io"
 	"log"
@@ -183,7 +181,6 @@ func writeSeriesBanyanDB(msc measurev1.MeasureServiceClient, r *rand.Rand, start
 	t := generateTemperature(r, min, e)
 	timestamp := startTimestamp
 	var sendError error
-	byteSlice := make([]byte, 8)
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
@@ -217,16 +214,6 @@ func writeSeriesBanyanDB(msc measurev1.MeasureServiceClient, r *rand.Rand, start
 								},
 							},
 						},
-						{
-							Tags: []*modelv1.TagValue{
-								{
-									// entity_id <ID>
-									Value: &modelv1.TagValue_Id{
-										Id: &modelv1.ID{Value: encodeBase64(byteSlice, key)},
-									},
-								},
-							},
-						},
 					},
 					Fields: []*modelv1.FieldValue{
 						{
@@ -247,15 +234,6 @@ func writeSeriesBanyanDB(msc measurev1.MeasureServiceClient, r *rand.Rand, start
 	sendError = multierr.Append(sendError, wc.CloseSend())
 	wg.Wait()
 	return sendError
-}
-
-func encodeBase64(dst []byte, sensorID int) string {
-	defer func() {
-		// reset buffer
-		dst = dst[:0]
-	}()
-	binary.BigEndian.PutUint64(dst, uint64(sensorID))
-	return base64.StdEncoding.EncodeToString(dst)
 }
 
 func generateTemperature(r *rand.Rand, min, e float64) float64 {

@@ -5,8 +5,6 @@ tagProjection:
   tagFamilies:
     - name: "default"
       tags: ["sensor_id"]
-    - name: "storage-only"
-      tags: ["entity_id"]
 fieldProjection:
   names: ["value"]
 limit: 10
